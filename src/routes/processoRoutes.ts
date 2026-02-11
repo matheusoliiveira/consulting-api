@@ -28,7 +28,7 @@ export async function processoRoutes(app: FastifyInstance) {
         relations: ['area']
       });
 
-      const arvoresCompletas = [];
+      const arvoresCompletas: Processo[] = [];
       for (const raiz of raizes) {
         const arvore = await repo.findDescendantsTree(raiz);
         arvoresCompletas.push(arvore);
@@ -41,76 +41,86 @@ export async function processoRoutes(app: FastifyInstance) {
 
   app.post('/processos', async (request, reply) => {
     const body = request.body as any;
-    const processo = repo.create(body);
+
+    const novoProcesso = new Processo();
+
+
+    novoProcesso.nome = body.nome;
+    novoProcesso.descricao = body.descricao;
+    novoProcesso.tipo = body.tipo ?? 'manual';
+    novoProcesso.ferramentas = body.ferramentas;
+    novoProcesso.responsaveis = body.responsaveis;
+    novoProcesso.documentacao = body.documentacao;
 
     if (body.areaId) {
-      processo.area = { id: Number(body.areaId) } as any;
+      novoProcesso.area = { id: Number(body.areaId) } as any;
     }
 
     if (body.paiId) {
       const paiExistente = await repo.findOneBy({ id: Number(body.paiId) });
       if (paiExistente) {
-        processo.pai = paiExistente;
+        novoProcesso.pai = paiExistente;
       }
     }
 
-    await repo.save(processo);
-    return reply.status(201).send(processo);
+    await repo.save(novoProcesso);
+    return reply.status(201).send(novoProcesso);
   });
 
   app.put('/processos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as any;
 
-    const processo = await repo.findOne({
+    const registroProcesso = await repo.findOne({
       where: { id: Number(id) },
       relations: ['pai', 'area']
     });
 
-    if (!processo) return reply.status(404).send({ message: "Processo não encontrado" });
+    if (!registroProcesso) return reply.status(404).send({ message: "Processo não encontrado" });
 
-    processo.nome = body.nome ?? processo.nome;
-    processo.tipo = body.tipo ?? processo.tipo;
-    processo.ferramentas = body.ferramentas ?? processo.ferramentas;
-    processo.responsaveis = body.responsaveis ?? processo.responsaveis;
-    processo.documentacao = body.documentacao ?? processo.documentacao;
+    registroProcesso.nome = body.nome ?? registroProcesso.nome;
+    registroProcesso.descricao = body.descricao ?? registroProcesso.descricao;
+    registroProcesso.tipo = body.tipo ?? registroProcesso.tipo;
+    registroProcesso.ferramentas = body.ferramentas ?? registroProcesso.ferramentas;
+    registroProcesso.responsaveis = body.responsaveis ?? registroProcesso.responsaveis;
+    registroProcesso.documentacao = body.documentacao ?? registroProcesso.documentacao;
 
     if (body.paiId !== undefined) {
       if (!body.paiId) {
-        processo.pai = null as any;
+        registroProcesso.pai = null;
       } else {
         const novoPai = await repo.findOneBy({ id: Number(body.paiId) });
-        if (novoPai && novoPai.id !== processo.id) {
-          processo.pai = novoPai;
+        if (novoPai && novoPai.id !== registroProcesso.id) {
+          registroProcesso.pai = novoPai;
         }
       }
     }
 
     if (body.areaId) {
-      processo.area = { id: Number(body.areaId) } as any;
+      registroProcesso.area = { id: Number(body.areaId) } as any;
     }
 
-    await repo.save(processo);
-    return processo;
+    await repo.save(registroProcesso);
+    return registroProcesso;
   });
 
   app.delete('/processos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const processo = await repo.findOne({
+    const itemParaRemover = await repo.findOne({
       where: { id: Number(id) },
       relations: ['sub_processos']
     });
 
-    if (!processo) return reply.status(404).send({ message: "Não encontrado" });
+    if (!itemParaRemover) return reply.status(404).send({ message: "Não encontrado" });
 
-    if (processo.sub_processos && processo.sub_processos.length > 0) {
+    if (itemParaRemover.sub_processos && itemParaRemover.sub_processos.length > 0) {
       return reply.status(400).send({
         message: "Não é possível apagar um processo que possui sub-processos vinculados."
       });
     }
 
-    await repo.remove(processo);
+    await repo.remove(itemParaRemover);
     return reply.status(204).send();
   });
 }
