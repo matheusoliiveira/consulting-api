@@ -1,10 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { AppDataSource } from '../database';
 import { Processo } from '../entities/Processo';
-import { IsNull, TreeRepository } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 export async function processoRoutes(app: FastifyInstance) {
-  const repo = AppDataSource.getTreeRepository(Processo) as TreeRepository<Processo>;
+  const repo = AppDataSource.getTreeRepository(Processo);
 
   app.get('/processos', async (request) => {
     const { areaId } = request.query as { areaId?: string };
@@ -49,7 +49,9 @@ export async function processoRoutes(app: FastifyInstance) {
 
     if (body.paiId) {
       const paiExistente = await repo.findOneBy({ id: Number(body.paiId) });
-      if (paiExistente) processo.pai = paiExistente;
+      if (paiExistente) {
+        processo.pai = paiExistente;
+      }
     }
 
     await repo.save(processo);
@@ -74,7 +76,7 @@ export async function processoRoutes(app: FastifyInstance) {
     processo.documentacao = body.documentacao ?? processo.documentacao;
 
     if (body.paiId !== undefined) {
-      if (body.paiId === null || body.paiId === "" || body.paiId === 0) {
+      if (!body.paiId) {
         processo.pai = null as any;
       } else {
         const novoPai = await repo.findOneBy({ id: Number(body.paiId) });
