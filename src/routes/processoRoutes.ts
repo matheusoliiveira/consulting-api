@@ -1,21 +1,44 @@
 import { FastifyInstance } from 'fastify';
 import { AppDataSource } from '../database';
 import { Processo } from '../entities/Processo';
+import { IsNull, TreeRepository } from 'typeorm';
 
 export async function processoRoutes(app: FastifyInstance) {
-  const repo = AppDataSource.getTreeRepository(Processo);
+  const repo = AppDataSource.getTreeRepository(Processo) as TreeRepository<Processo>;
 
-  // LISTAR TUDO
-  app.get('/processos', async () => {
-    return await repo.find({ relations: ['area', 'pai'] });
+  app.get('/processos', async (request) => {
+    const { areaId } = request.query as { areaId?: string };
+    const whereClause = areaId ? { area: { id: Number(areaId) } } : {};
+
+    return await repo.find({
+      where: whereClause,
+      relations: ['area', 'pai']
+    });
   });
 
-  // BUSCAR ÁRVORE (Para o gráfico de hierarquia)
-  app.get('/processos/arvore', async () => {
+  app.get('/processos/arvore', async (request) => {
+    const { areaId } = request.query as { areaId?: string };
+
+    if (areaId) {
+      const raizes = await repo.find({
+        where: {
+          area: { id: Number(areaId) },
+          pai: IsNull()
+        },
+        relations: ['area']
+      });
+
+      const arvoresCompletas = [];
+      for (const raiz of raizes) {
+        const arvore = await repo.findDescendantsTree(raiz);
+        arvoresCompletas.push(arvore);
+      }
+      return arvoresCompletas;
+    }
+
     return await repo.findTrees({ relations: ['area'] });
   });
 
-  // CADASTRAR
   app.post('/processos', async (request, reply) => {
     const body = request.body as any;
     const processo = repo.create(body);
@@ -33,7 +56,6 @@ export async function processoRoutes(app: FastifyInstance) {
     return reply.status(201).send(processo);
   });
 
-  // ATUALIZAR (Permite mover entre processos e mudar áreas)
   app.put('/processos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -45,17 +67,15 @@ export async function processoRoutes(app: FastifyInstance) {
 
     if (!processo) return reply.status(404).send({ message: "Processo não encontrado" });
 
-    // Atualiza campos básicos
     processo.nome = body.nome ?? processo.nome;
     processo.tipo = body.tipo ?? processo.tipo;
     processo.ferramentas = body.ferramentas ?? processo.ferramentas;
     processo.responsaveis = body.responsaveis ?? processo.responsaveis;
     processo.documentacao = body.documentacao ?? processo.documentacao;
 
-    // Ajuste de Hierarquia (Subprocessos)
     if (body.paiId !== undefined) {
       if (body.paiId === null || body.paiId === "" || body.paiId === 0) {
-        processo.pai = null;
+        processo.pai = null as any;
       } else {
         const novoPai = await repo.findOneBy({ id: Number(body.paiId) });
         if (novoPai && novoPai.id !== processo.id) {
@@ -72,7 +92,6 @@ export async function processoRoutes(app: FastifyInstance) {
     return processo;
   });
 
-  // REMOVER PROCESSO
   app.delete('/processos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
@@ -83,10 +102,9 @@ export async function processoRoutes(app: FastifyInstance) {
 
     if (!processo) return reply.status(404).send({ message: "Não encontrado" });
 
-    // Se tiver filhos, não deixa apagar para não quebrar a árvore
     if (processo.sub_processos && processo.sub_processos.length > 0) {
       return reply.status(400).send({
-        message: "Não é possível apagar um processo que possui sub-processos."
+        message: "Não é possível apagar um processo que possui sub-processos vinculados."
       });
     }
 

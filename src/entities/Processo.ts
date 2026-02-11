@@ -13,34 +13,32 @@ import { Area } from "./Area";
 @Tree("materialized-path")
 export class Processo {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
-  @Column()
-  nome: string;
-
-  @Column({ type: 'text', nullable: true })
-  descricao: string;
-
-  @Column({ default: 'manual' })
-  tipo: string;
-
-  @Column({ type: 'simple-array', nullable: true })
-  ferramentas: string[];
-
-  @Column({ type: 'simple-array', nullable: true })
-  responsaveis: string[];
+  @Column({ type: 'varchar' })
+  nome!: string;
 
   @Column({ type: 'text', nullable: true })
-  documentacao: string;
+  descricao!: string;
 
-  // Adicionamos onDelete: 'SET NULL' ou 'CASCADE' para evitar o erro de deleção
-  // Localize isso no seu src/entities/Processo.ts
-  @ManyToOne(() => Area, { onDelete: 'SET NULL', nullable: true })
-  area: Area;
+  @Column({ type: 'varchar', default: 'manual' })
+  tipo!: string;
 
-  @TreeParent({ onDelete: 'CASCADE' }) // Se apagar o pai, apaga os filhos (ou mude para 'SET NULL')
-  pai: Processo;
+  @Column({ type: 'simple-array', nullable: true })
+  ferramentas!: string[];
+
+  @Column({ type: 'simple-array', nullable: true })
+  responsaveis!: string[];
+
+  @Column({ type: 'text', nullable: true })
+  documentacao!: string;
+
+  @ManyToOne(() => Area, (area) => area.processos, { onDelete: 'SET NULL', nullable: true })
+  area!: Area;
+
+  @TreeParent({ onDelete: 'CASCADE' })
+  pai!: Processo | null;
 
   @TreeChildren()
-  sub_processos: Processo[];
+  sub_processos!: Processo[];
 }

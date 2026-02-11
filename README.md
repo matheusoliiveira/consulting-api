@@ -1,63 +1,57 @@
-# 📊 API de Mapeamento de Processos - Consultoria
+# 🚀 StageFlow API - Backend
 
-Este projeto é uma API REST robusta desenvolvida para gerenciar o mapeamento de processos e sub-processos de empresas, organizados por áreas. O sistema permite a criação de uma hierarquia infinita de processos utilizando a estratégia de **Materialized Path**.
+Esta é a API REST robusta do ecossistema **StageFlow**, desenvolvida para gerenciar o mapeamento de processos e a governança corporativa. O sistema utiliza uma arquitetura de árvore para organizar departamentos e processos de forma recursiva, permitindo uma visão clara da eficiência operacional.
 
-## 🛠️ Tecnologias Utilizadas
 
-* **Node.js & TypeScript:** Garantia de produtividade com segurança de tipos.
-* **Fastify:** Framework web de alto desempenho e baixo overhead.
-* **TypeORM:** ORM moderno para interação com banco de dados.
-* **PostgreSQL:** Banco de dados relacional robusto.
-* **Docker & Docker Compose:** Containerização para garantir que o ambiente seja idêntico em qualquer máquina.
 
-## 🚀 Como Executar o Projeto
+## 🛠️ Tecnologias e Frameworks
 
-### Pré-requisitos
-* Docker e Docker Compose instalados.
-* Node.js (v18 ou superior) instalado localmente (opcional para desenvolvimento).
+* **Node.js & TypeScript:** Ambiente de execução e linguagem com tipagem estrita para maior segurança e produtividade.
+* **Fastify:** Framework web de alta performance e baixo overhead, focado em escalabilidade.
+* **TypeORM:** ORM moderno utilizado para gerenciar entidades e relacionamentos complexos de banco de dados.
+* **PostgreSQL:** Banco de dados relacional robusto, escolhido para garantir a integridade da hierarquia de processos.
 
-### Passo a Passo
+## 🧠 Diferenciais Técnicos
 
-1.  **Clonar o repositório:**
-    ```bash
-    git clone [https://github.com/seu-usuario/consulting-api.git](https://github.com/seu-usuario/consulting-api.git)
-    cd consulting-api
-    ```
+### 1. Hierarquia de Árvore (Materialized Path)
+Implementamos o `TreeRepository` do TypeORM com a estratégia de **Materialized Path**. Isso permite:
+* Consultas recursivas de alta performance para recuperar estruturas complexas.
+* Criação de níveis ilimitados de sub-processos (relação Pai/Filho).
+* Recuperação de árvores completas por departamento com uma única chamada via `findDescendantsTree`.
 
-2.  **Subir o Banco de Dados (Docker):**
-    ```bash
-    docker-compose up -d
-    ```
-
-3.  **Instalar dependências:**
-    ```bash
-    npm install
-    ```
-
-4.  **Rodar a aplicação:**
-    ```bash
-    npm run dev
-    ```
-    A API estará online em: `http://localhost:3334`
+### 2. Governança e Integridade
+* **Segurança na Deleção:** O sistema possui uma trava lógica que impede a remoção de processos que contenham sub-processos vinculados, evitando dados órfãos.
+* **Tratamento de Erros Global:** `ErrorHandler` customizado que mapeia erros de banco de dados (como violação de chaves únicas ou estrangeiras) em mensagens amigáveis.
+* **CORS Dinâmico:** Configuração de segurança que autoriza requisições apenas de origens confiáveis, alternando entre ambiente local e produção na Vercel.
 
 ## 🛤️ Endpoints Principais
 
-### Áreas
-* `GET /areas` - Lista todas as áreas.
-* `POST /areas` - Cadastra uma nova área.
-* `PUT /areas/:id` - Atualiza dados de uma área.
-* `DELETE /areas/:id` - Remove uma área (impede remoção se houver processos vinculados).
+| Método | Endpoint | Descrição |
+| :--- | :--- | :--- |
+| **GET** | `/processos/arvore` | Retorna a hierarquia completa formatada em árvore, filtrada por `areaId`. |
+| **POST** | `/processos` | Cria um novo processo ou sub-processo via `paiId`. |
+| **PUT** | `/processos/:id` | Atualiza dados, ferramentas, responsáveis e links de documentação. |
+| **DELETE** | `/processos/:id` | Remove um processo, validando se não há dependentes ativos. |
 
-### Processos (Estrutura em Árvore)
-* `GET /processos/arvore` - Retorna a hierarquia completa de processos e sub-processos.
-* `POST /processos` - Cria um processo ou sub-processo (basta enviar o `paiId`).
-* `PUT /processos/:id` - Atualiza informações do processo.
-* `DELETE /processos/:id` - Remove um processo da hierarquia.
 
-## 🧠 Diferenciais Técnicos (Destaques para a Avaliação)
 
-* **Hierarquia de Árvore:** Implementação de `TreeRepository` com `Materialized Path`, permitindo consultas recursivas eficientes no banco de dados.
-* **Integridade Referencial:** Tratamento de erros para impedir a deleção de áreas com processos ativos.
-* **Padronização REST:** Uso correto de métodos HTTP (GET, POST, PUT, DELETE) e códigos de status (201, 204, 400, 404).
-* **Ambiente Isolado:** Configuração completa via Docker para facilitar o deploy e testes.
+## ⚙️ Configuração para Produção (Render)
 
+A API está totalmente preparada para deploy contínuo no **Render**:
+* **Porta Dinâmica:** O servidor escuta na variável global `PORT` injetada automaticamente pelo ambiente.
+* **Binding de Host:** Configurado em `0.0.0.0` para garantir a aceitação de conexões externas.
+* **Variáveis de Ambiente Necessárias:**
+    * `DATABASE_URL`: String de conexão completa com o PostgreSQL (Internal/External URL).
+    * `FRONTEND_URL`: URL da aplicação hospedada na Vercel para autorização do CORS.
+
+## 🚀 Como Rodar Localmente
+
+1. Certifique-se de ter o **Docker** e o **Docker Compose** instalados.
+2. Instale as dependências:
+   ```bash
+   npm install
+3. Configure seu arquivo .env baseado no .env.example
+4. Inicie o banco e a aplicação:
+    ```bash
+docker-compose up -d
+npm run dev
