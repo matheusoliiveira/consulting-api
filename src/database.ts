@@ -11,14 +11,16 @@ const isTest = process.env.NODE_ENV === 'test';
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT) || 5432,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS,
 
-  database: isTest ? "consulting_test" : process.env.DB_NAME,
+  url: process.env.DATABASE_URL,
 
-  synchronize: isTest ? true : false,
+  host: process.env.DATABASE_URL ? undefined : process.env.DB_HOST || 'localhost',
+  port: process.env.DATABASE_URL ? undefined : (Number(process.env.DB_PORT) || 5432),
+  username: process.env.DATABASE_URL ? undefined : process.env.DB_USER || 'postgres',
+  password: process.env.DATABASE_URL ? undefined : process.env.DB_PASS || '123',
+  database: isTest ? "consulting_test" : (process.env.DATABASE_URL ? undefined : process.env.DB_NAME),
+
+  synchronize: isTest || process.env.NODE_ENV === 'production' ? true : false,
 
   logging: false,
   entities: [Area, Processo],
