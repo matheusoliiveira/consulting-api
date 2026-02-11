@@ -53,5 +53,6 @@ A API está totalmente preparada para deploy contínuo no **Render**:
 3. Configure seu arquivo .env baseado no .env.example
 4. Inicie o banco e a aplicação:
     ```bash
-docker-compose up -d
-npm run dev
+   docker-compose up -d
+    npm run dev
+
